@@ -3,11 +3,22 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
-    <loc>https://kirasys.github.io/categories/</loc>
+    <loc>https://kirasys.github.io/</loc>
+    <lastmod>2020-05-05T19:12:20+09:00</lastmod>
   </url>
   
   <url>
-    <loc>https://kirasys.github.io/</loc>
+    <loc>https://kirasys.github.io/post/</loc>
+    <lastmod>2020-05-05T19:12:20+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://kirasys.github.io/post/test/</loc>
+    <lastmod>2020-05-05T19:12:20+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://kirasys.github.io/categories/</loc>
   </url>
   
   <url>
