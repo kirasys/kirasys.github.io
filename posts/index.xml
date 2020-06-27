@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Serendipity in Software</title>
-    <link>https://kirasys.github.io/</link>
-    <description>Recent content on Serendipity in Software</description>
+    <title>Posts on Serendipity in Software</title>
+    <link>https://kirasys.github.io/posts/</link>
+    <description>Recent content in Posts on Serendipity in Software</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Thu, 25 Jun 2020 10:51:47 +0530</lastBuildDate>
     
-	<atom:link href="https://kirasys.github.io/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="https://kirasys.github.io/posts/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
@@ -18,28 +18,6 @@
       
       <guid>https://kirasys.github.io/posts/v3_bug_analysis/</guid>
       <description>I&amp;rsquo;ve found several vulnerabilities in V3 Lite of Ahnlab recently. Through these bugs, i will compare the pros and cons of fuzzing and manual analysis. Because these bugs are a real-world vulnerability, I won&amp;rsquo;t explain too many details. Case: Coverage-guided fuzzing The bug found by coverage-guided fuzzer(winafl) is triggered in URL parsing function called when v3 lite determines for is it malicious URL. To fuzz this function, i wrote a short harness that loads a target dll and runs url parsing function but it needs a little reverse engineering.</description>
-    </item>
-    
-    <item>
-      <title>About</title>
-      <link>https://kirasys.github.io/pages/about/</link>
-      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
-      <guid>https://kirasys.github.io/pages/about/</guid>
-      <description>Hugo cards is a Bootstrap based theme ported from the Jekyll theme Webjeda-cards. Any Bootstrap element can be used in the theme.
-For more themes, visit Hugo Themes
-Does the theme deserve a star?
-Star</description>
-    </item>
-    
-    <item>
-      <title>Contact</title>
-      <link>https://kirasys.github.io/pages/contact/</link>
-      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
-      <guid>https://kirasys.github.io/pages/contact/</guid>
-      <description>Visit my site
-Insert your contact details or a contact form here.</description>
     </item>
     
   </channel>

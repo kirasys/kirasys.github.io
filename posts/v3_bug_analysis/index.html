@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Fuzzing vs Manual analysis. - Serendipity in Software</title>
+<meta name="description" content="I&amp;rsquo;ve found several vulnerabilities in V3 Lite of Ahnlab recently. Through these bugs, i will compare the pros and cons of fuzzing and manual analysis. Because these bugs are a real-world vulnerability, I won&amp;rsquo;t explain too many details. Case: Coverage-guided fuzzing The bug found by coverage-guided fuzzer(winafl) is triggered in URL parsing function called when v3 lite determines for is it malicious URL. To fuzz this function, i wrote a short harness that loads a target dll and runs url parsing function but it needs a little reverse engineering."/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="https://kirasys.github.io/posts/v3_bug_analysis/" />
+
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:description" content="I&amp;rsquo;ve found several vulnerabilities in V3 Lite of Ahnlab recently. Through these bugs, i will compare the pros and cons of fuzzing and manual analysis. Because these bugs are a real-world vulnerability, I won&amp;rsquo;t explain too many details. Case: Coverage-guided fuzzing The bug found by coverage-guided fuzzer(winafl) is triggered in URL parsing function called when v3 lite determines for is it malicious URL. To fuzz this function, i wrote a short harness that loads a target dll and runs url parsing function but it needs a little reverse engineering." />
+<meta name="twitter:title" content="Fuzzing vs Manual analysis. - Serendipity in Software" />
+<meta name="twitter:site" content="" />
+<meta name="twitter:creator" content="" />
+
+
+<meta property="og:type" content="article" />
+<meta content="Fuzzing vs Manual analysis. - Serendipity in Software" property="og:title">
+<meta content="I&amp;rsquo;ve found several vulnerabilities in V3 Lite of Ahnlab recently. Through these bugs, i will compare the pros and cons of fuzzing and manual analysis. Because these bugs are a real-world vulnerability, I won&amp;rsquo;t explain too many details. Case: Coverage-guided fuzzing The bug found by coverage-guided fuzzer(winafl) is triggered in URL parsing function called when v3 lite determines for is it malicious URL. To fuzz this function, i wrote a short harness that loads a target dll and runs url parsing function but it needs a little reverse engineering." property="og:description">
+<meta property="og:url" content="https://kirasys.github.io/posts/v3_bug_analysis/" />
+<meta property="og:site_name" content="Serendipity in Software" />
+<meta property="article:section" content="11" />
+<meta property="article:published_time" content="2020-06-25 10:51:47 &#43;0530 &#43;0530" />
+
+
+
+
+
+<script type="application/ld+json">
+{ 
+    "@context": "http://schema.org", 
+    "@type": "BlogPosting",
+    "headline": "Fuzzing vs Manual analysis.",
+    "genre": "11",  
+    "url": "https:\/\/kirasys.github.io\/posts\/v3_bug_analysis\/",
+    "datePublished": "2020-06-25 10:51:47 \x2b0530 \x2b0530",
+    "description": "I\x26rsquo;ve found several vulnerabilities in V3 Lite of Ahnlab recently. Through these bugs, i will compare the pros and cons of fuzzing and manual analysis. Because these bugs are a real-world vulnerability, I won\x26rsquo;t explain too many details. Case: Coverage-guided fuzzing The bug found by coverage-guided fuzzer(winafl) is triggered in URL parsing function called when v3 lite determines for is it malicious URL. To fuzz this function, i wrote a short harness that loads a target dll and runs url parsing function but it needs a little reverse engineering.",
+    "author": {
+        "@type": "Person",
+        "name": ""
+    }
+ }
+</script>
+
+
+
+
+<link rel="stylesheet" href="/sass/main.css">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+<nav class="navbar navbar-default">
+  <div class="container-fluid">
+    
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="https://kirasys.github.io/">Serendipity in Software</a>
+    </div>
+
+    
+    <div class="collapse navbar-collapse " id="bs-example-navbar-collapse-1">
+            <ul class="nav navbar-nav navbar-right">
+        <li><a href="https://kirasys.github.io/pages/about/">About</a></li>
+        <li><a href="https://kirasys.github.io/pages/contact/">Contact</a></li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+</header>
+
+
+    <div class="container">
+      <div class="wrapper">
+        
+<div class="row">
+<div class="col-md-8">
+    <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+          <header class="post-header">
+            <h1 class="post-title" itemprop="name headline">Fuzzing vs Manual analysis.</h1>
+            <p class="post-meta"><time datetime='2020-06-25T10:51:47&#43;05:30' itemprop="datePublished">June 25, 2020</time> • <span itemprop="author" itemscope itemtype="http://schema.org/Person"><span itemprop="name">kirasys</span></span></p>
+                 
+          </header>
+
+          <div class="post-content" itemprop="articleBody">
+            <p>I&rsquo;ve found several vulnerabilities in V3 Lite of Ahnlab recently. Through these bugs, i will compare the pros and cons of fuzzing and manual analysis. Because these bugs are a real-world vulnerability, I won&rsquo;t explain too many details.
+<br><br></p>
+<h4 id="case-coverage-guided-fuzzing">Case: Coverage-guided fuzzing</h4>
+<p>The bug found by coverage-guided fuzzer(winafl) is triggered in URL parsing function called when v3 lite determines for is it malicious URL. To fuzz this function, i wrote a short harness that loads a target dll and runs url parsing function but it needs a little reverse engineering. Here is the source code of harness.</p>
+<h6 id="v3_harnesscpp">v3_harness.cpp</h6>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;stdio.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;tchar.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;Windows.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;winsock.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#pragma comment(lib, &#34;Ws2_32.lib&#34;)
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">extern</span> <span style="color:#e6db74">&#34;C&#34;</span> <span style="color:#66d9ef">__declspec</span>(dllexport) <span style="color:#66d9ef">int</span> fuzz_med(<span style="color:#66d9ef">__int64</span><span style="color:#f92672">*</span> hMeD, <span style="color:#66d9ef">char</span><span style="color:#f92672">*</span> url);
+
+<span style="color:#66d9ef">struct</span> Med {
+	<span style="color:#66d9ef">__int64</span> v11;
+	<span style="color:#66d9ef">char</span> buf[<span style="color:#ae81ff">0x3000</span>];
+};
+
+<span style="color:#66d9ef">typedef</span> <span style="color:#a6e22e">__int64</span> (<span style="color:#f92672">*</span>MEDINITIALIZEEX) (<span style="color:#66d9ef">int</span><span style="color:#f92672">*</span> a1);
+<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">__int64</span><span style="color:#f92672">*</span> (<span style="color:#f92672">*</span>MEDCREATEHANDLE) ();
+<span style="color:#66d9ef">typedef</span> <span style="color:#a6e22e">__int64</span> (<span style="color:#f92672">*</span>MEDSCANURL) 
+				(<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span> Dst, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span><span style="color:#f92672">*</span> a2, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span><span style="color:#f92672">*</span> a3, <span style="color:#66d9ef">int</span> a4, <span style="color:#66d9ef">char</span><span style="color:#f92672">*</span> buf);
+<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">__int64</span><span style="color:#f92672">*</span> (<span style="color:#f92672">*</span>MEDDESTORYHANDLE) (<span style="color:#66d9ef">__int64</span><span style="color:#f92672">*</span>);
+<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">__int64</span><span style="color:#f92672">*</span> (<span style="color:#f92672">*</span>MEDFINALIZE) (<span style="color:#66d9ef">int</span> a1);
+
+MEDINITIALIZEEX MeDInitializeEx_func;
+MEDCREATEHANDLE MeDCreateHandle_func;
+MEDSCANURL MeDScanUrl_func;
+MEDDESTORYHANDLE MeDDestroyHandle_func;
+MEDFINALIZE MeDFinalize_func;
+
+<span style="color:#66d9ef">bool</span> <span style="color:#a6e22e">load_dll_and_functions</span>() {
+	HMODULE medcore_dll <span style="color:#f92672">=</span> LoadLibraryA(<span style="color:#e6db74">&#34;medcore.dll&#34;</span>);
+
+	<span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>medcore_dll) {
+		printf(<span style="color:#e6db74">&#34;Error loading mecore.dll </span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+		<span style="color:#66d9ef">return</span> false;
+	}
+
+	MeDInitializeEx_func <span style="color:#f92672">=</span> (MEDINITIALIZEEX)GetProcAddress(medcore_dll, 
+															<span style="color:#e6db74">&#34;MeDInitializeEx&#34;</span>);
+	MeDCreateHandle_func <span style="color:#f92672">=</span> (MEDCREATEHANDLE)GetProcAddress(medcore_dll, 
+															<span style="color:#e6db74">&#34;MeDCreateHandle&#34;</span>);
+	MeDScanUrl_func <span style="color:#f92672">=</span> (MEDSCANURL)GetProcAddress(medcore_dll, 
+															<span style="color:#e6db74">&#34;MeDScanUrl&#34;</span>);
+	MeDDestroyHandle_func <span style="color:#f92672">=</span> (MEDDESTORYHANDLE)GetProcAddress(medcore_dll, 
+															<span style="color:#e6db74">&#34;MeDDestroyHandle&#34;</span>);
+	MeDFinalize_func <span style="color:#f92672">=</span> (MEDFINALIZE)GetProcAddress(medcore_dll, 
+															<span style="color:#e6db74">&#34;MeDFinalize&#34;</span>);
+
+	<span style="color:#66d9ef">return</span> true;
+}
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">fuzz_med</span>(<span style="color:#66d9ef">__int64</span><span style="color:#f92672">*</span> hMeD, <span style="color:#66d9ef">char</span><span style="color:#f92672">*</span> file) {
+	FILE<span style="color:#f92672">*</span> fp;
+
+	fopen_s(<span style="color:#f92672">&amp;</span>fp, file, <span style="color:#e6db74">&#34;rb&#34;</span>);
+	<span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>fp)
+		<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+
+	fseek(fp, <span style="color:#ae81ff">0</span>, SEEK_END);
+	<span style="color:#66d9ef">long</span> urlLength <span style="color:#f92672">=</span> ftell(fp);
+	rewind(fp);
+
+	<span style="color:#66d9ef">char</span> buf[<span style="color:#ae81ff">0x1000</span>] <span style="color:#f92672">=</span> { <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>, };
+	<span style="color:#66d9ef">char</span><span style="color:#f92672">*</span> url <span style="color:#f92672">=</span> new <span style="color:#66d9ef">char</span>[urlLength <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>];
+	<span style="color:#66d9ef">if</span> (url) {
+		fread(url, <span style="color:#ae81ff">1</span>, urlLength, fp);
+		url[urlLength] <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;\x00&#39;</span>;
+		MeDScanUrl_func((<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span>)hMeD, url, url, <span style="color:#ae81ff">0</span>, buf);
+
+		free(url);
+	}
+
+	<span style="color:#66d9ef">if</span> (fp)
+		fclose(fp);
+
+	<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">char</span><span style="color:#f92672">*</span> argv[]) {
+	<span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>load_dll_and_functions())
+		<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+
+	Med med;
+	med.v11 <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x20D0</span>;
+	memset(med.buf, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0x3000</span>);
+
+	<span style="color:#66d9ef">int</span> ret <span style="color:#f92672">=</span> MeDInitializeEx_func((<span style="color:#66d9ef">int</span><span style="color:#f92672">*</span>)<span style="color:#f92672">&amp;</span>med);
+	<span style="color:#66d9ef">if</span> (ret) {
+		printf(<span style="color:#e6db74">&#34;MeDInitializeEx failed </span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+		<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+	}
+
+	<span style="color:#66d9ef">__int64</span><span style="color:#f92672">*</span> hMeD <span style="color:#f92672">=</span> MeDCreateHandle_func();
+	<span style="color:#66d9ef">if</span> (hMeD) {
+		hMeD[<span style="color:#ae81ff">1</span>] <span style="color:#f92672">|=</span> <span style="color:#ae81ff">0x40000</span>;
+		fuzz_med(hMeD, argv[<span style="color:#ae81ff">1</span>]);
+		MeDDestroyHandle_func(hMeD);
+	}
+
+
+	MeDFinalize_func(<span style="color:#ae81ff">0</span>);
+
+	<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><p>After target dll and functions initialization, it calls a function of target dll. The function which is fuzzed by winafl is MeDCoreUrl. In order to call this function, We need to setup some structure and handle and this part needs reverse engineering. 
+<br><br></p>
+<p><img src="../../images/v3_bug_analysis/winafl.JPG" alt="winafl"> <br></p>
+<h1 id="heading"></h1>
+<p>As you can see, it&rsquo;s able to find a unique crash soon. When i analyzed medcored.dll manually, I couldn&rsquo;t spot this crash. Now let me tell you why i didn&rsquo;t find this bug.
+<br><br></p>
+<p><img src="../../images/v3_bug_analysis/bug1_code1.png" alt="winafl"> <br><br>
+<img src="../../images/v3_bug_analysis/bug1_code2.JPG" alt="winafl"> <br></p>
+<h1 id="heading-1"></h1>
+<p>The above code is pseudocode of IDA hexray where the crash triggers. &lsquo;Str&rsquo; is the URL delivered by the fuzzer. Let&rsquo;s see the stack variable &lsquo;v7&rsquo;. It&rsquo;s initialized in the [1] loop and it used in the [2] loop. However, If the URL consist of a spot like &lsquo;&hellip;&hellip;&hellip;', the split_by function returns 0. Then the [1] loop is skipped but the [2] loop is not. Because of the [2] loop&rsquo;s condition(i &lt;<b>=</b> v16), uninitailized stack variable vulnerability occurs.</p>
+<h5 id="conclusion">Conclusion</h5>
+<p>Can you spot this bug through manual reverse engineering? It&rsquo;s not impossible, but it&rsquo;s very difficult and easy to miss. This fact is the advantage of fuzzing. The fuzzing tool automatically measures code coverage and records various code path. That&rsquo;s why it can spot the bug that we missed.
+<br><br></p>
+<h4 id="case-manual-analysis">Case: Manual analysis</h4>
+<p>I came across the second bug while i was analyzing the V3 Lite manully. It exists in very unique code path of &lsquo;ScanProcess&rsquo; function that scans for malicious processes.
+<br><br></p>
+<p><img src="../../images/v3_bug_analysis/wscript.png" alt="winafl"> <br>
+<br>
+The &lsquo;v8&rsquo; of the above pseudocode is the processs name to scan. If the name is &ldquo;wscript.exe&rdquo;, calls ScanProcesssParam (#29). Window Script Host(wscript.exe) provides an environment in which users can execute scripts in a variety of languages. So V3 Lite parses and scans the command line of wscript.exe to determine if it is executing a malicious script.
+<br><br></p>
+<p><img src="../../images/v3_bug_analysis/bug2_code2.JPG" alt="winafl"> <br>
+<br>
+CNTProcessParamInfo function initializes &lsquo;v7&rsquo; class variable for command line parsing (#27). The vulnerability occurs in v7 initialization routine.
+<br><br></p>
+<p><img src="../../images/v3_bug_analysis/bug2_code3.png" alt="winafl"> <br>
+<br>
+If (a1 + 584) has a handle value, calls &ldquo;FreeLibrary&rdquo; to release it. However, (a1 + 584) has never been initialized before. This vulnerability allows an attacker to unload any dll modules. And i&rsquo;ve successfully built the exploit that terminates V3 Lite process (Denial of Service). What&rsquo;s interesting is that just entering the code branch of wscript.exe, the vulnerability is triggered. But fuzzing tools like a winafl (used in Closed-Source), hard to enter this code branch. In addition, it is very difficult to build a fuzzer for running processes.</p>
+<h5 id="conclusion-1">Conclusion</h5>
+<p>There are vulnerabilities that a fuzzer couldn&rsquo;t spot. And they are easily discovered in some cases.</p>
+
+          </div>
+
+    </article>
+    <div class="row">
+        
+    </div>
+    
+    <div class="row">
+            <ul class="pager">
+             
+              
+                <li><a class="previous" href="https://kirasys.github.io/pages/about/">About &raquo;</a></li>
+              
+            </ul>
+    </div>
+</div>
+
+
+<div class="col-md-4 mt20">
+        <div class="post-img">
+           
+            <img width="600" src="https://kirasys.github.io/images/v3_bug_analysis/v3logo.png" alt="Fuzzing vs Manual analysis.">
+            
+        </div>
+            
+        
+        <div class="mt10 recent">
+            <h2>Recent articles</h2>        
+             <ul>
+                
+
+                      <li>
+                      <p><a href="https://kirasys.github.io/posts/v3_bug_analysis/">Fuzzing vs Manual analysis.</a><small>&nbsp;&nbsp;June 25, 2020</small></p>
+                      </li>
+
+                
+              </ul>
+        </div>
+        
+        <br>
+
+</div>
+
+</div>
+
+
+
+
+      </div>
+    </div>
+
+    <footer>
+    <div class="container">
+        <div class="row p20">
+            
+                <div class="col-md-4 text-center mt25">All rights reserved by <a target="_blank" href="https://bool.netlify.com">bool</a></div>
+            
+
+            <div class="col-md-4 text-center mt25" >
+                
+                <a target="_blank" href="https://bool.netlify.com"><img src="https://img.shields.io/badge/Built%20by-bool-brightgreen.svg" alt="bool"></a>
+                
+            </div>
+            <div class="col-md-4 text-center mt25">
+               
+                <a target="_blank" href="https://www.facebook.com/profile.php?id=100008635065103"><li class="social facebook"><i class="fa fa-facebook-square"></i></li></a> 
+                
+               
+               
+               
+                <a target="_blank" href="http://github.com/kirasys"><li class="social github"><i class="fa fa-github-square"></i></li></a>
+                
+               
+            </div>
+
+        </div> 
+    </div>
+</footer>
+    
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
+  <script src="https://kirasys.github.io//js/bootstrap.min.js"></script>
+  
+  </body>
+
+</html>
