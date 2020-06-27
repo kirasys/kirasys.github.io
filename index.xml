@@ -17,7 +17,7 @@
       <pubDate>Thu, 25 Jun 2020 10:51:47 +0530</pubDate>
       
       <guid>https://kirasys.github.io/posts/v3_bug_analysis/</guid>
-      <description>I&amp;rsquo;ve found several vulnerabilities in V3 Lite of Ahnlab recently. Through these bugs, i will compare the pros and cons of fuzzing and manual analysis. Because these bugs are a real-world vulnerability, I won&amp;rsquo;t explain too many details. Case: Coverage-guided fuzzing The bug found by coverage-guided fuzzer(winafl) is triggered in URL parsing function called when v3 lite determines for is it malicious URL. To fuzz this function, i wrote a short harness that loads a target dll and runs url parsing function but it needs a little reverse engineering.</description>
+      <description>I&amp;rsquo;ve found several vulnerabilities in V3 Lite of Ahnlab recently. Through these bugs, I will compare the pros and cons of fuzzing and manual analysis. Because these bugs are a real-world vulnerability, I won&amp;rsquo;t explain too many details. Case: Coverage-guided fuzzing The bug found by coverage-guided fuzzer(winafl) is triggered due to a URL parsing function called when v3 lite determines if it is a malicious URL. To fuzz this function, I wrote a short harness that loads a target dll and runs a function for URL parsing but it needs a little reverse engineering.</description>
     </item>
     
     <item>
